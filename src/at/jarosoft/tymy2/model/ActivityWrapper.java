@@ -11,7 +11,7 @@ import com.taskadapter.redmineapi.bean.TimeEntryActivity;
  *
  * @author mj
  */
-public class ActivityWrapper {
+public class ActivityWrapper implements ComboBoxable {
 
     private TimeEntryActivity activity;
 
@@ -30,6 +30,11 @@ public class ActivityWrapper {
     @Override
     public String toString() {
         return activity.getName();
+    }
+
+    @Override
+    public int getId() {
+        return this.activity.getId();
     }
 
 }

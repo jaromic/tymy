@@ -93,12 +93,17 @@ public class TymyController {
         return activitiesWrapped;
     }
 
-    public static void saveSettings(String redmineUrl, String apiKey) throws CouldNotSaveSettingsException {
+    public static void saveSettings(String redmineUrl, String apiKey, Integer lastProjectId, String lastTicketId, String lastComment, Double lastHours, Integer lastActivityId) throws CouldNotSaveSettingsException {
         Preferences preferences;
         preferences = Preferences.userRoot().node(Tymy2.class.getName());
         try {
             preferences.put("redmineUrl", redmineUrl);
             preferences.put("apiKey", apiKey);
+            preferences.put("lastProjectId", lastProjectId.toString());
+            preferences.put("lastTicketId", lastTicketId);
+            preferences.put("lastComment", lastComment);
+            preferences.put("lastHours", lastHours.toString());
+            preferences.put("lastActivityId", lastActivityId.toString());
             preferences.sync();
         } catch (BackingStoreException e) {
             throw new CouldNotSaveSettingsException(e.getMessage());
@@ -109,10 +114,24 @@ public class TymyController {
         Preferences preferences;
         String redmineUrl;
         String apiKey;
+        int lastProjectId;
+        String lastTicketId;
+        String lastComment;
+        Double lastHours;
+        int lastActivityId;
         preferences = Preferences.userRoot().node(Tymy2.class.getName());
         redmineUrl = preferences.get("redmineUrl", "");
         apiKey = preferences.get("apiKey", "");
-        return new Settings(redmineUrl, apiKey);
+        try {
+            lastProjectId = Integer.parseInt(preferences.get("lastProjectId", "0"));
+            lastTicketId = preferences.get("lastTicketId", "");
+            lastComment = preferences.get("lastComment", "");
+            lastHours = Double.parseDouble(preferences.get("lastHours", "0.0"));
+            lastActivityId = Integer.parseInt(preferences.get("lastActivityId", "0"));
+        } catch (NumberFormatException e) {
+            throw e;
+        }
+        return new Settings(redmineUrl, apiKey, lastProjectId, lastTicketId, lastComment, lastHours, lastActivityId);
     }
 
     public static void startMeasurement() {

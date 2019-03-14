@@ -9,6 +9,7 @@ import at.jarosoft.tymy2.controller.TymyController;
 import at.jarosoft.tymy2.exception.CouldNotSaveSettingsException;
 import at.jarosoft.tymy2.exception.CouldNotSaveTimeEntryException;
 import at.jarosoft.tymy2.model.ActivityWrapper;
+import at.jarosoft.tymy2.model.ComboBoxable;
 import at.jarosoft.tymy2.model.ProjectWrapper;
 import at.jarosoft.tymy2.model.Settings;
 import java.awt.AWTKeyStroke;
@@ -25,11 +26,16 @@ import java.util.logging.Logger;
 import javax.swing.ComboBoxModel;
 import javax.swing.DefaultComboBoxModel;
 import javax.swing.InputMap;
+import javax.swing.JComboBox;
 import javax.swing.JComponent;
 import javax.swing.JOptionPane;
 import javax.swing.JTabbedPane;
 import javax.swing.KeyStroke;
+import javax.swing.SwingUtilities;
+import static javax.swing.SwingUtilities.updateComponentTreeUI;
 import javax.swing.Timer;
+import javax.swing.UIManager;
+import javax.swing.UnsupportedLookAndFeelException;
 
 /**
  *
@@ -95,6 +101,8 @@ public class MainWindow extends javax.swing.JFrame {
         lblStatus = new javax.swing.JLabel();
 
         setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
+        setTitle("TyMy");
+        setIconImage(new javax.swing.ImageIcon(getClass().getResource("/at/jarosoft/tymy2/gui/icon/stopwatch_white.png")).getImage());
         addWindowListener(new java.awt.event.WindowAdapter() {
             public void windowClosing(java.awt.event.WindowEvent evt) {
                 formWindowClosing(evt);
@@ -238,8 +246,6 @@ public class MainWindow extends javax.swing.JFrame {
         lblProject.setDisplayedMnemonic('p');
         lblProject.setText("Project");
 
-        cbProject.setModel(new javax.swing.DefaultComboBoxModel<>(new String[] { "Item 1", "Item 2", "Item 3", "Item 4" }));
-
         lblTicket.setDisplayedMnemonic('t');
         lblTicket.setText("Ticket");
 
@@ -260,11 +266,8 @@ public class MainWindow extends javax.swing.JFrame {
         lblActivity.setDisplayedMnemonic('y');
         lblActivity.setText("Activity");
 
-        cbActivity.setModel(new javax.swing.DefaultComboBoxModel<>(new String[] { "Item 1", "Item 2", "Item 3", "Item 4" }));
-
         btnSubmit.setMnemonic('s');
         btnSubmit.setText("Submit");
-        btnSubmit.setEnabled(false);
         btnSubmit.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
                 btnSubmitActionPerformed(evt);
@@ -401,43 +404,75 @@ public class MainWindow extends javax.swing.JFrame {
         // TODO add your handling code here:
     }//GEN-LAST:event_txtCommentActionPerformed
 
+    private void selectItemWithId(JComboBox comboBox, int id) {
+        ComboBoxModel model = comboBox.getModel();
+        for (int i = 0; i < model.getSize(); ++i) {
+            ComboBoxable wrapper = (ComboBoxable) model.getElementAt(i);
+            if (wrapper.getId() == id) {
+                comboBox.setSelectedItem(wrapper);
+                break;
+            }
+        }
+    }
+
     private void formWindowOpened(java.awt.event.WindowEvent evt) {//GEN-FIRST:event_formWindowOpened
 
         this.tpMain.setSelectedIndex(this.TAB_INDEX_MEASURE);
         setupTabTraversalKeys(tpMain);
 
-        this.lblStatus.setText("Loading settings...");
-
-        Settings settings = TymyController.loadSettings();
-        this.txtRedmineUrl.setText(settings.redmineUrl);
-        this.txtApiKey.setText(settings.apiKey);
-
         this.lblStatus.setText("Getting projects from redmine...");
         List<ProjectWrapper> projects;
         projects = TymyController.getProjectsWrapped();
-        ComboBoxModel projectsModel;
-        projectsModel = new DefaultComboBoxModel(projects.toArray());
+        ComboBoxModel<ComboBoxable> projectsModel;
+        final ComboBoxable[] projectsArray = (ComboBoxable[]) projects.toArray(new ComboBoxable[1]);
+        projectsModel = new DefaultComboBoxModel<>(projectsArray);
         this.cbProject.setModel(projectsModel);
 
         this.lblStatus.setText("Getting activities from redmine...");
         List<ActivityWrapper> activities;
         activities = TymyController.getActivitiesWrapped();
-        ComboBoxModel activitiesModel;
-        activitiesModel = new DefaultComboBoxModel(activities.toArray());
+        ComboBoxModel<ComboBoxable> activitiesModel;
+        final ComboBoxable[] activitiesArray = (ComboBoxable[]) activities.toArray(new ComboBoxable[1]);
+        activitiesModel = new DefaultComboBoxModel<>(activitiesArray);
         this.cbActivity.setModel(activitiesModel);
+
+        this.loadSettings();
 
         this.lblStatus.setText("Ready.");
         this.btnMeasure.requestFocus();
 
     }//GEN-LAST:event_formWindowOpened
 
+    private void loadSettings() {
+        this.lblStatus.setText("Loading settings...");
+
+        Settings settings = TymyController.loadSettings();
+        this.txtRedmineUrl.setText(settings.redmineUrl);
+        this.txtApiKey.setText(settings.apiKey);
+        selectItemWithId(cbProject, settings.lastProjectId);
+        this.txtComment.setText(settings.lastComment);
+        this.txtTicket.setText(settings.lastTicketId);
+        this.txtHours.setValue(settings.lastHours);
+        selectItemWithId(cbActivity, settings.lastActivityId);
+        Logger.getLogger(TymyController.class.getName()).log(Level.INFO, "Settings loaded.");
+        Logger.getLogger(TymyController.class.getName()).log(Level.INFO, settings.lastComment);
+    }
+
     private void saveSettings() {
         try {
             this.lblStatus.setText("Saving settings...");
-            TymyController.saveSettings(this.txtRedmineUrl.getText(), this.txtApiKey.getText());
+            TymyController.saveSettings(this.txtRedmineUrl.getText(),
+                    this.txtApiKey.getText(),
+                    ((ProjectWrapper) (this.cbProject.getSelectedItem())).getProject().getId(),
+                    this.txtTicket.getText(),
+                    this.txtComment.getText(),
+                    (Double) this.txtHours.getValue(),
+                    ((ActivityWrapper) (this.cbActivity.getSelectedItem())).getActivity().getId()
+            );
             this.lblStatus.setText("Ready.");
-            this.lblStatus.setBackground(Color.gray);
+            this.lblStatus.setBackground(UIManager.getColor("Panel.background"));
             this.lblStatus.setForeground(Color.black);
+            Logger.getLogger(TymyController.class.getName()).log(Level.INFO, "Settings saved.");
         } catch (CouldNotSaveSettingsException e) {
             JOptionPane.showMessageDialog(this, String.format("Could not save settings: %s", e.getMessage()), "Tymy", JOptionPane.ERROR_MESSAGE);
             Logger.getLogger(TymyController.class.getName()).log(Level.SEVERE, null, String.format("Could not save settings: %s", e.getMessage()));
@@ -469,7 +504,7 @@ public class MainWindow extends javax.swing.JFrame {
                 this.btnContinue.setEnabled(false);
                 this.btnUndo.setEnabled(false);
                 this.lblStatus.setText("Measurement started.");
-                this.lblStatus.setBackground(Color.gray);
+                this.lblStatus.setBackground(UIManager.getColor("Panel.background"));
                 this.lblStatus.setForeground(Color.black);
                 this.flashWindowTimer.stop();
             } else if (evt.getStateChange() == ItemEvent.DESELECTED) {
@@ -479,7 +514,7 @@ public class MainWindow extends javax.swing.JFrame {
                 this.btnUndo.setEnabled(TymyController.canUndo());
                 long seconds = TymyController.getMeasurementSeconds();
                 this.lblStatus.setText(String.format("Measurement stopped after %s seconds.", seconds));
-                this.lblStatus.setBackground(Color.gray);
+                this.lblStatus.setBackground(UIManager.getColor("Panel.background"));
                 this.lblStatus.setForeground(Color.black);
                 this.txtHours.setValue(TymyController.secondsToIndustrialHours(seconds));
                 this.tpMain.setSelectedIndex(this.TAB_INDEX_SUBMIT);
@@ -499,7 +534,7 @@ public class MainWindow extends javax.swing.JFrame {
         this.btnContinue.setEnabled(false);
         this.btnUndo.setEnabled(false);
         this.lblStatus.setText(String.format("Continuing measurement after %s seconds...", seconds));
-        this.lblStatus.setBackground(Color.lightGray);
+        this.lblStatus.setBackground(UIManager.getColor("Panel.background"));
         this.lblStatus.setForeground(Color.black);
         this.flashWindowTimer.stop();
         this.tpMain.setSelectedIndex(this.TAB_INDEX_MEASURE);
@@ -507,7 +542,7 @@ public class MainWindow extends javax.swing.JFrame {
 
     private void btnSubmitActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnSubmitActionPerformed
         this.lblStatus.setText("Submitting data to redmine...");
-        this.lblStatus.setBackground(Color.lightGray);
+        this.lblStatus.setBackground(UIManager.getColor("Panel.background"));
         this.lblStatus.setForeground(Color.black);
         this.lblStatus.invalidate();
         try {
@@ -601,8 +636,8 @@ public class MainWindow extends javax.swing.JFrame {
     private javax.swing.JToggleButton btnMeasure;
     private javax.swing.JButton btnSubmit;
     private javax.swing.JButton btnUndo;
-    private javax.swing.JComboBox<String> cbActivity;
-    private javax.swing.JComboBox<String> cbProject;
+    private javax.swing.JComboBox<ComboBoxable> cbActivity;
+    private javax.swing.JComboBox<ComboBoxable> cbProject;
     private javax.swing.JScrollPane jScrollPane1;
     private javax.swing.JLabel lblActivity;
     private javax.swing.JLabel lblApiKey;

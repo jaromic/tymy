@@ -11,7 +11,7 @@ import com.taskadapter.redmineapi.bean.Project;
  *
  * @author mj
  */
-public class ProjectWrapper {
+public class ProjectWrapper implements ComboBoxable {
 
     private Project project;
 
@@ -30,6 +30,11 @@ public class ProjectWrapper {
     @Override
     public String toString() {
         return project.getName();
+    }
+
+    @Override
+    public int getId() {
+        return this.project.getId();
     }
 
 }
