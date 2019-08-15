@@ -8,8 +8,6 @@ package at.jarosoft.tymy2;
 import at.jarosoft.tymy2.gui.MainWindow;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import javax.swing.SwingUtilities;
-import static javax.swing.SwingUtilities.updateComponentTreeUI;
 import javax.swing.UIManager;
 import javax.swing.UnsupportedLookAndFeelException;
 

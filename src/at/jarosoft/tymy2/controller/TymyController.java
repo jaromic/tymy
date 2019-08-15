@@ -41,17 +41,24 @@ public class TymyController {
         String apiAccessKey = settings.apiKey;
 
         final int maxProjects = 100;
-
-        RedmineManager redmineManager = RedmineManagerFactory.createWithApiKey(uri, apiAccessKey);
-
-        redmineManager.setObjectsPerPage(maxProjects);
-
+        RedmineManager redmineManager;
+        if (uri.length() > 0) {
+            redmineManager = RedmineManagerFactory.createWithApiKey(uri, apiAccessKey);
+            redmineManager.setObjectsPerPage(maxProjects);
+        } else {
+            redmineManager = null;
+        }
         return redmineManager;
     }
 
     private static TimeEntryManager getTimeEntryManager() {
         RedmineManager redmineManager = TymyController.getRedmineManager();
-        TimeEntryManager timeEntryManager = redmineManager.getTimeEntryManager();
+        TimeEntryManager timeEntryManager;
+        if (redmineManager != null) {
+            timeEntryManager = redmineManager.getTimeEntryManager();
+        } else {
+            timeEntryManager = null;
+        }
         return timeEntryManager;
     }
 
@@ -59,18 +66,23 @@ public class TymyController {
 
         RedmineManager redmineManager = TymyController.getRedmineManager();
 
-        ProjectManager projectManager = redmineManager.getProjectManager();
         List<ProjectWrapper> projectsWrapped;
         projectsWrapped = new ArrayList<>();
-        try {
-            List<Project> projects;
-            projects = projectManager.getProjects();
-            for (Project project : projects) {
-                projectsWrapped.add(new ProjectWrapper(project));
-            }
 
-        } catch (RedmineException ex) {
-            Logger.getLogger(TymyController.class.getName()).log(Level.SEVERE, null, ex);
+        if (redmineManager != null) {
+
+            ProjectManager projectManager = redmineManager.getProjectManager();
+
+            try {
+                List<Project> projects;
+                projects = projectManager.getProjects();
+                for (Project project : projects) {
+                    projectsWrapped.add(new ProjectWrapper(project));
+                }
+
+            } catch (RedmineException ex) {
+                Logger.getLogger(TymyController.class.getName()).log(Level.SEVERE, null, ex);
+            }
         }
 
         return projectsWrapped;
@@ -80,14 +92,17 @@ public class TymyController {
         TimeEntryManager timeEntryManager = TymyController.getTimeEntryManager();
         List<ActivityWrapper> activitiesWrapped;
         activitiesWrapped = new ArrayList<>();
-        try {
-            List<TimeEntryActivity> activities;
-            activities = timeEntryManager.getTimeEntryActivities();
-            for (TimeEntryActivity activity : activities) {
-                activitiesWrapped.add(new ActivityWrapper(activity));
+
+        if (timeEntryManager != null) {
+            try {
+                List<TimeEntryActivity> activities;
+                activities = timeEntryManager.getTimeEntryActivities();
+                for (TimeEntryActivity activity : activities) {
+                    activitiesWrapped.add(new ActivityWrapper(activity));
+                }
+            } catch (RedmineException ex) {
+                Logger.getLogger(TymyController.class.getName()).log(Level.SEVERE, null, ex);
             }
-        } catch (RedmineException ex) {
-            Logger.getLogger(TymyController.class.getName()).log(Level.SEVERE, null, ex);
         }
 
         return activitiesWrapped;

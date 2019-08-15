@@ -408,7 +408,7 @@ public class MainWindow extends javax.swing.JFrame {
         ComboBoxModel model = comboBox.getModel();
         for (int i = 0; i < model.getSize(); ++i) {
             ComboBoxable wrapper = (ComboBoxable) model.getElementAt(i);
-            if (wrapper.getId() == id) {
+            if (wrapper != null && wrapper.getId() == id) {
                 comboBox.setSelectedItem(wrapper);
                 break;
             }
@@ -423,6 +423,7 @@ public class MainWindow extends javax.swing.JFrame {
         this.lblStatus.setText("Getting projects from redmine...");
         List<ProjectWrapper> projects;
         projects = TymyController.getProjectsWrapped();
+        this.lblStatus.setText("");
         ComboBoxModel<ComboBoxable> projectsModel;
         final ComboBoxable[] projectsArray = (ComboBoxable[]) projects.toArray(new ComboBoxable[1]);
         projectsModel = new DefaultComboBoxModel<>(projectsArray);
@@ -444,7 +445,10 @@ public class MainWindow extends javax.swing.JFrame {
     }//GEN-LAST:event_formWindowOpened
 
     private void loadSettings() {
+        Logger.getLogger(TymyController.class.getName()).log(Level.INFO, "Loading settings...");
         this.lblStatus.setText("Loading settings...");
+        this.lblStatus.repaint();
+        this.repaint();
 
         Settings settings = TymyController.loadSettings();
         this.txtRedmineUrl.setText(settings.redmineUrl);
@@ -461,13 +465,30 @@ public class MainWindow extends javax.swing.JFrame {
     private void saveSettings() {
         try {
             this.lblStatus.setText("Saving settings...");
+
+            ProjectWrapper selectedProject = ((ProjectWrapper) (this.cbProject.getSelectedItem()));
+            int selectedProjectId;
+            if (selectedProject != null) {
+                selectedProjectId = selectedProject.getProject().getId();
+            } else {
+                selectedProjectId = 0;
+            }
+
+            ActivityWrapper selectedActivity = ((ActivityWrapper) (this.cbActivity.getSelectedItem()));
+            int selectedActivityId = 0;
+            if (selectedActivity != null) {
+                selectedActivityId = selectedActivity.getActivity().getId();
+            } else {
+                selectedActivityId = 0;
+            }
+
             TymyController.saveSettings(this.txtRedmineUrl.getText(),
                     this.txtApiKey.getText(),
-                    ((ProjectWrapper) (this.cbProject.getSelectedItem())).getProject().getId(),
+                    selectedProjectId,
                     this.txtTicket.getText(),
                     this.txtComment.getText(),
                     (Double) this.txtHours.getValue(),
-                    ((ActivityWrapper) (this.cbActivity.getSelectedItem())).getActivity().getId()
+                    selectedActivityId
             );
             this.lblStatus.setText("Ready.");
             this.lblStatus.setBackground(UIManager.getColor("Panel.background"));
